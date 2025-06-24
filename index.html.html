@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>เกมระบุคู่อันดับและจตุภาค</title>
+    <style>
+        /* General Body Styles */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-color: #e0f7fa; /* Light Cyan Background */
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+            color: #333;
+            overflow-x: hidden; /* Prevent horizontal scroll for confetti */
+        }
+
+        /* Container Styles */
+        #game-container, #start-screen, #score-board {
+            background-color: #ffffff; /* White background for containers */
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2); /* Deeper shadow */
+            text-align: center;
+            width: 100%; /* Make containers fill available width */
+            max-width: 650px; /* Maximum width for larger screens */
+            margin-bottom: 25px;
+            border: 1px solid #b2ebf2; /* Light border */
+            box-sizing: border-box; /* Include padding and border in the element's total width and height */
+        }
+        #game-container.hidden, #score-board.hidden {
+            display: none;
+        }
+
+        /* Canvas Styles - Now responsive */
+        canvas {
+            border: 2px solid #00796b; /* Darker teal border */
+            background-color: #f5f5f5; /* Off-white background */
+            border-radius: 8px; /* Slightly rounded corners for canvas */
+            width: 100%; /* Make Canvas stretch to 100% of its parent's width */
+            height: auto; /* Maintain aspect ratio */
+            display: block; /* Remove extra space below canvas element */
+        }
+
+        /* Controls & Buttons */
+        #controls {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 12px; /* Increased gap */
+            flex-wrap: wrap; /* Allow buttons to wrap to next line on smaller screens */
+        }
+        button {
+            padding: 12px 25px; /* Larger padding */
+            font-size: 17px; /* Larger font */
+            cursor: pointer;
+            border: none;
+            border-radius: 8px; /* More rounded corners */
+            transition: background-color 0.3s ease, transform 0.2s ease; /* Smooth transition & subtle transform */
+            font-weight: bold;
+            letter-spacing: 0.5px;
+        }
+        button:hover {
+            opacity: 0.9;
+            transform: translateY(-2px); /* Slight lift on hover */
+        }
+        button:active {
+            transform: translateY(0); /* Press effect */
+        }
+
+        #start-game-btn {
+            background-color: #4CAF50; /* Green */
+            color: white;
+            box-shadow: 0 4px #388E3C; /* Darker green shadow */
+        }
+        #start-game-btn:active {
+            box-shadow: 0 1px #388E3C;
+            transform: translateY(2px);
+        }
+
+        #new-point-btn {
+            background-color: #2196F3; /* Blue */
+            color: white;
+            box-shadow: 0 4px #1976D2; /* Darker blue shadow */
+        }
+        #new-point-btn:active {
+            box-shadow: 0 1px #1976D2;
+            transform: translateY(2px);
+        }
+
+        #check-answer-btn {
+            background-color: #FFC107; /* Amber */
+            color: #333;
+            box-shadow: 0 4px #FFA000; /* Darker amber shadow */
+        }
+        #check-answer-btn:active {
+            box-shadow: 0 1px #FFA000;
+            transform: translateY(2px);
+        }
+
+        #show-scores-btn {
+            background-color: #9C27B0; /* Purple */
+            color: white;
+            box-shadow: 0 4px #7B1FA2; /* Darker purple shadow */
+        }
+        #show-scores-btn:active {
+            box-shadow: 0 1px #7B1FA2;
+            transform: translateY(2px);
+        }
+
+        #back-to-game-btn {
+            background-color: #607D8B; /* Blue Grey */
+            color: white;
+            box-shadow: 0 4px #455A64; /* Darker blue grey shadow */
+        }
+        #back-to-game-btn:active {
+            box-shadow: 0 1px #455A64;
+            transform: translateY(2px);
+        }
+
+        /* Message Styles */
+        #message {
+            margin-top: 15px;
+            font-size: 19px;
+            font-weight: bold;
+            padding: 8px 15px;
+            border-radius: 5px;
+        }
+        .correct {
+            color: #28a745; /* Green */
+            background-color: #d4edda; /* Light green background */
+        }
+        .wrong {
+            color: #dc3545; /* Red */
+            background-color: #f8d7da; /* Light red background */
+        }
+        .info {
+            color: #007bff; /* Blue */
+            background-color: #e0f0ff; /* Light blue background */
+        }
+
+        /* Input Group Styles */
+        .input-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #555;
+            font-size: 1.1em;
+        }
+        .input-group input[type="text"],
+        .input-group input[type="number"],
+        .input-group select {
+            width: calc(100% - 22px); /* Adjust for padding and border */
+            padding: 12px;
+            border: 1px solid #a7d9f2; /* Light blue border */
+            border-radius: 8px;
+            font-size: 16px; /* Ensure readable font size */
+            box-sizing: border-box; /* Include padding and border in width */
+            background-color: #fcfcfc;
+        }
+        .input-group input:focus, .input-group select:focus {
+            border-color: #007bff; /* Highlight on focus */
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+        }
+
+        /* Player Info & Score Display */
+        #player-info {
+            margin-bottom: 15px;
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #0056b3; /* Darker blue */
+        }
+        #score-display {
+            font-size: 1.3em;
+            margin-bottom: 15px;
+            color: #00796b; /* Teal color */
+            font-weight: bold;
+        }
+
+        /* Timer Display */
+        #timer-display {
+            font-size: 1.6em; /* Slightly larger timer */
+            font-weight: bold;
+            color: #d9534f; /* Red color for timer */
+            margin-bottom: 15px;
+            animation: pulse 1.5s infinite alternate; /* Subtle pulse animation */
+        }
+        /* Keyframes for pulse animation */
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(1.03); opacity: 0.9; }
+        }
+
+        /* Answer Input Group */
+        .answer-input-group {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #3f51b5; /* Indigo */
+        }
+        .answer-input-group input {
+            width: 90px; /* Slightly wider input boxes */
+            padding: 10px;
+            text-align: center;
+            border: 1px solid #9fa8da; /* Light indigo border */
+            border-radius: 5px;
+            font-size: 1.1em;
+        }
+
+        /* Score Board Styles */
+        #score-board table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 25px;
+            background-color: #e3f2fd; /* Light blue table background */
+            border-radius: 8px;
+            overflow: hidden; /* For rounded corners to work with borders */
+        }
+        #score-board th, #score-board td {
+            border: 1px solid #bbdefb; /* Lighter blue border */
+            padding: 10px;
+            text-align: center;
+            font-size: 0.95em;
+        }
+        #score-board th {
+            background-color: #2196F3; /* Blue header */
+            color: white;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        #score-board tr:nth-child(even) {
+            background-color: #f1f8e9; /* Alternate row color */
+        }
+        #score-board tr:hover {
+            background-color: #e8f5e9; /* Hover effect */
+        }
+
+        .score-summary {
+            margin-top: 25px;
+            padding: 15px;
+            background-color: #fffde7; /* Light yellow background */
+            border-radius: 8px;
+            text-align: left;
+            border: 1px solid #ffecb3;
+        }
+        .score-summary h3 {
+            margin-top: 0;
+            color: #f57f17; /* Darker amber */
+            font-size: 1.3em;
+            border-bottom: 1px solid #ffecb3;
+            padding-bottom: 8px;
+            margin-bottom: 10px;
+        }
+        .score-summary p {
+            margin: 8px 0;
+            color: #616161;
+            font-size: 1.05em;
+        }
+
+        /* --- Responsive Adjustments for Smaller Screens --- */
+        @media (max-width: 600px) { /* Adjustments for screens smaller than 600px (e.g., mobile phones) */
+            body {
+                padding: 10px; /* Reduce overall body padding */
+            }
+            #game-container, #start-screen, #score-board {
+                padding: 15px; /* Reduce container padding */
+                margin: 10px auto; /* Add margin for spacing, center horizontally */
+                max-width: 95%; /* Use more screen width on small devices */
+            }
+            button {
+                padding: 10px 18px; /* Slightly smaller padding for buttons */
+                font-size: 15px; /* Smaller font size for buttons */
+            }
+            .input-group label {
+                font-size: 1em; /* Slightly smaller label font */
+            }
+            .input-group input[type="text"],
+            .input-group input[type="number"],
+            .input-group select {
+                padding: 10px; /* Smaller padding for input fields */
+                font-size: 15px; /* Ensure readable font size for inputs */
+            }
+            .answer-input-group span {
+                font-size: 1.1em; /* Adjust font size for coordinate labels */
+            }
+            .answer-input-group input {
+                width: 70px; /* Adjust input width for X and Y coordinates */
+                font-size: 1em; /* Adjust font size for coordinate inputs */
+            }
+            #message {
+                font-size: 16px; /* Smaller message font */
+                padding: 6px 10px;
+            }
+            #timer-display {
+                font-size: 1.4em; /* Slightly smaller timer font */
+            }
+            #player-info, #score-display {
+                font-size: 1.1em; /* Adjust font size for player info and score */
+            }
+            #score-board th, #score-board td {
+                font-size: 0.85em; /* Smaller font for score table */
+                padding: 8px;
+            }
+            .score-summary p {
+                font-size: 0.95em; /* Smaller font for score summary */
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="start-screen">
+        <h1>เกมระบุคู่อันดับและจตุภาค</h1>
+        <p>กรุณากรอกข้อมูลของคุณก่อนเริ่มเกม</p>
+        <div class="input-group">
+            <label for="firstName">ชื่อ:</label>
+            <input type="text" id="firstName" placeholder="ชื่อ" required>
+        </div>
+        <div class="input-group">
+            <label for="lastName">สกุล:</label>
+            <input type="text" id="lastName" placeholder="สกุล" required>
+        </div>
+        <div class="input-group">
+            <label for="studentClass">ชั้น:</label>
+            <input type="text" id="studentClass" placeholder="ตัวอย่าง: ม.3/1" required>
+        </div>
+        <div class="input-group">
+            <label for="studentId">เลขที่:</label>
+            <input type="number" id="studentId" placeholder="เลขที่" min="1" required>
+        </div>
+        <button id="start-game-btn">เริ่มเกม</button>
+    </div>
+
+    <div id="game-container" class="hidden">
+        <h1>เกมระบุคู่อันดับและจตุภาค</h1>
+        <p>ระบุคู่อันดับ (x, y) และจตุภาคของภาพที่ปรากฏบนกราฟ คุณมี 5 ข้อ</p>
+        <p id="player-info"></p>
+        <p id="score-display">คะแนน: 0/0</p>
+        <p id="timer-display">เวลาที่เหลือ: 30 วินาที</p>
+        <canvas id="graphCanvas" width="400" height="400"></canvas>
+        
+        <div class="answer-input-group">
+            <span>คู่อันดับ (</span>
+            <input type="number" id="answerX" placeholder="x">
+            <span>,</span>
+            <input type="number" id="answerY" placeholder="y">
+            <span>)</span>
+        </div>
+        <div class="input-group" style="width: fit-content; margin: 15px auto;">
+            <label for="answerQuadrant">จตุภาค:</label>
+            <select id="answerQuadrant">
+                <option value="">เลือกจตุภาค</option>
+                <option value="จตุภาคที่ 1">จตุภาคที่ 1</option>
+                <option value="จตุภาคที่ 2">จตุภาคที่ 2</option>
+                <option value="จตุภาคที่ 3">จตุภาคที่ 3</option>
+                <option value="จตุภาคที่ 4">จตุภาคที่ 4</option>
+                <option value="บนแกน X">บนแกน X</option>
+                <option value="บนแกน Y">บนแกน Y</option>
+                <option value="จุดกำเนิด (0,0)">จุดกำเนิด (0,0)</option>
+            </select>
+        </div>
+
+        <div id="controls">
+            <button id="new-point-btn" style="display: none;">จุดถัดไป</button> 
+            <button id="check-answer-btn">ตรวจสอบคำตอบ</button>
+            <button id="show-scores-btn">ดูคะแนนรวม</button>
+        </div>
+        <p>คำตอบของคุณ: <span id="your-answer">ยังไม่มี</span></p>
+        <p>คำตอบที่ถูกต้อง: <span id="correct-answer"></span></p>
+        <div id="message"></div>
+    </div>
+
+    <div id="score-board" class="hidden">
+        <h1>สถิติผู้เข้าเล่น</h1>
+        <div class="score-summary">
+            <h3>คะแนนรวมแต่ละคน</h3>
+            <div id="individual-scores-summary">
+                </div>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>ลำดับ</th>
+                    <th>ชื่อ</th>
+                    <th>สกุล</th>
+                    <th>ชั้น</th>
+                    <th>เลขที่</th>
+                    <th>คะแนน</th>
+                    <th>วันที่/เวลา</th>
+                </tr>
+            </thead>
+            <tbody id="scores-table-body">
+                </tbody>
+        </table>
+        <button id="back-to-game-btn">กลับสู่เกม</button>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/confetti-js@0.0.18/dist/index.min.js"></script>
+
+    <script>
+        const canvas = document.getElementById('graphCanvas');
+        const ctx = canvas.getContext('2d');
+        const newPointBtn = document.getElementById('new-point-btn');
+        const checkAnswerBtn = document.getElementById('check-answer-btn');
+        const answerXInput = document.getElementById('answerX');
+        const answerYInput = document.getElementById('answerY');
+        const answerQuadrantSelect = document.getElementById('answerQuadrant');
+        const yourAnswerSpan = document.getElementById('your-answer');
+        const correctAnswerSpan = document.getElementById('correct-answer');
+        const messageDiv = document.getElementById('message');
+        const scoreDisplay = document.getElementById('score-display');
+        const playerInfoDisplay = document.getElementById('player-info');
+        const timerDisplay = document.getElementById('timer-display');
+
+        const startScreen = document.getElementById('start-screen');
+        const firstNameInput = document.getElementById('firstName');
+        const lastNameInput = document.getElementById('lastName');
+        const studentClassInput = document.getElementById('studentClass');
+        const studentIdInput = document.getElementById('studentId');
+        const startGameBtn = document.getElementById('start-game-btn');
+
+        const gameContainer = document.getElementById('game-container');
+
+        const scoreBoard = document.getElementById('score-board');
+        const scoresTableBody = document.getElementById('scores-table-body'); 
+        const individualScoresSummaryDiv = document.getElementById('individual-scores-summary');
+        const showScoresBtn = document.getElementById('show-scores-btn');
+        const backToGameBtn = document.getElementById('back-to-game-btn');
+
+        const ORIGINAL_CANVAS_SIZE = 400; // Original fixed size for reference
+        let CANVAS_SIZE; // This will be dynamic
+        let GRID_STEP; // Will be calculated based on CANVAS_SIZE
+        let ORIGIN_X; // Will be calculated based on CANVAS_SIZE
+        let ORIGIN_Y; // Will be calculated based on CANVAS_SIZE
+        const MAX_COORD = 10; // Keep fixed range of coordinates (-10 to 10)
+
+        const TOTAL_QUESTIONS = 5; 
+        const TIME_PER_QUESTION = 30; 
+
+        let targetPoint = { x: 0, y: 0 };
+        let currentScore = 0;
+        let questionCount = 0;
+        let currentPlayer = {};
+        let gameScores = JSON.parse(localStorage.getItem('graphGameScoresIdentifyV5_full')) || []; 
+
+        let timerInterval;
+        let timeLeft;
+        let gameIsOver = false;
+
+        // Initialize confetti
+        const confettiSettings = { target: 'game-container', max: 80, size: 1.2, clock: 20 };
+        const confetti = new ConfettiGenerator(confettiSettings);
+
+        // Array of image paths - Replace with your actual image paths
+        const imagePaths = [
+            'https://via.placeholder.com/30/FF0000/FFFFFF?text=A', 
+            'https://via.placeholder.com/30/0000FF/FFFFFF?text=B', 
+            'https://via.placeholder.com/30/00FF00/FFFFFF?text=C', 
+            'https://via.placeholder.com/30/FFFF00/000000?text=D', 
+            'https://via.placeholder.com/30/FF00FF/FFFFFF?text=E', 
+            'https://via.placeholder.com/30/00FFFF/000000?text=F', 
+            'https://via.placeholder.com/30/FFA500/FFFFFF?text=G', 
+            'https://via.placeholder.com/30/800080/FFFFFF?text=H'  
+        ];
+        let currentImage = new Image();
+        let usedImageIndices = []; 
+
+        // Function to resize canvas and redraw grid
+        function resizeCanvas() {
+            // Get the actual computed width of the canvas element (as set by CSS)
+            // Use Math.min to ensure canvas doesn't get larger than its original intended size
+            CANVAS_SIZE = Math.min(ORIGINAL_CANVAS_SIZE, canvas.clientWidth); 
+            
+            canvas.width = CANVAS_SIZE;
+            canvas.height = CANVAS_SIZE;
+
+            // Recalculate grid and origin based on new CANVAS_SIZE
+            // MAX_COORD is kept constant (e.g., 10) to ensure the graph range is always -10 to 10
+            GRID_STEP = CANVAS_SIZE / (MAX_COORD * 2); 
+            ORIGIN_X = CANVAS_SIZE / 2;
+            ORIGIN_Y = CANVAS_SIZE / 2;
+
+            drawGrid(); // Redraw the grid
+            // If an image is currently displayed, redraw it at the correct scaled position
+            if (currentImage && currentImage.complete && questionCount > 0 && !gameIsOver) {
+                drawImageOnGraph(currentImage, targetPoint.x, targetPoint.y);
+            }
+        }
+
+        // Draw the coordinate grid
+        function drawGrid() {
+            ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+
+            // Draw grid lines
+            ctx.strokeStyle = '#bdbdbd'; 
+            ctx.lineWidth = 0.5;
+            for (let i = 0; i <= CANVAS_SIZE; i += GRID_STEP) {
+                ctx.beginPath();
+                ctx.moveTo(i, 0);
+                ctx.lineTo(i, CANVAS_SIZE);
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.moveTo(0, i);
+                ctx.lineTo(CANVAS_SIZE, i);
+                ctx.stroke();
+            }
+
+            // Draw X and Y axes
+            ctx.strokeStyle = '#424242'; 
+            ctx.lineWidth = 2;
+
+            ctx.beginPath();
+            ctx.moveTo(0, ORIGIN_Y);
+            ctx.lineTo(CANVAS_SIZE, ORIGIN_Y);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(ORIGIN_X, 0);
+            ctx.lineTo(ORIGIN_X, CANVAS_SIZE);
+            ctx.stroke();
+
+            // Draw arrowheads for axes
+            drawArrowhead(ctx, CANVAS_SIZE, ORIGIN_Y, -5, 5, 'horizontal');
+            drawArrowhead(ctx, 0, ORIGIN_Y, 5, 5, 'horizontal');
+            drawArrowhead(ctx, ORIGIN_X, 0, 5, -5, 'vertical');
+            drawArrowhead(ctx, ORIGIN_X, CANVAS_SIZE, 5, 5, 'vertical');
+
+            // Draw numbers on axes
+            ctx.fillStyle = '#616161'; 
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            for (let i = -MAX_COORD; i <= MAX_COORD; i += 1) {
+                if (i === 0) continue; 
+                ctx.fillText(i, ORIGIN_X + (i * GRID_STEP), ORIGIN_Y + 15); // X-axis numbers
+                ctx.fillText(i, ORIGIN_X - 15, ORIGIN_Y - (i * GRID_STEP)); // Y-axis numbers
+            }
+             // Draw origin label (0)
+            ctx.fillText('0', ORIGIN_X - 10, ORIGIN_Y + 10);
+        }
+
+        function drawArrowhead(context, x, y, size, direction, axis) {
+            context.save();
+            context.beginPath();
+            context.fillStyle = '#424242'; 
+            if (axis === 'horizontal') {
+                context.moveTo(x, y);
+                context.lineTo(x - direction, y - size);
+                context.lineTo(x - direction, y + size);
+            } else { 
+                context.moveTo(x, y);
+                context.lineTo(x - size, y - direction);
+                context.lineTo(x + size, y - direction);
+            }
+            context.closePath();
+            context.fill();
+            context.restore();
+        }
+
+        function generateRandomPointAndImage() {
+            if (gameIsOver) {
+                return;
+            }
+
+            questionCount++;
+
+            // Check if all questions are done
+            if (questionCount > TOTAL_QUESTIONS) {
+                endGame();
+                return;
+            }
+
+            // Generate random point, ensure it's not (0,0)
+            do {
+                targetPoint.x = Math.floor(Math.random() * (MAX_COORD * 2 + 1)) - MAX_COORD;
+                targetPoint.y = Math.floor(Math.random() * (MAX_COORD * 2 + 1)) - MAX_COORD;
+            } while (targetPoint.x === 0 && targetPoint.y === 0);
+
+            // Select image, ensure all images are used before repeating
+            if (usedImageIndices.length === imagePaths.length) {
+                usedImageIndices = []; // Reset if all images have been used
+            }
+            let imageIndex;
+            do {
+                imageIndex = Math.floor(Math.random() * imagePaths.length);
+            } while (usedImageIndices.includes(imageIndex)); // Ensure unique image
+            usedImageIndices.push(imageIndex);
+
+            currentImage.src = imagePaths[imageIndex];
+            
+            // Handle image loading
+            currentImage.onload = () => {
+                drawGrid(); 
+                drawImageOnGraph(currentImage, targetPoint.x, targetPoint.y); 
+
+                // Reset input fields and messages
+                answerXInput.value = '';
+                answerYInput.value = '';
+                answerQuadrantSelect.value = '';
+                yourAnswerSpan.textContent = 'ยังไม่มี';
+                correctAnswerSpan.textContent = '';
+                messageDiv.textContent = '';
+                messageDiv.className = 'message info';
+                updateScoreDisplay();
+
+                // Enable inputs and buttons for new question
+                answerXInput.disabled = false;
+                answerYInput.disabled = false;
+                answerQuadrantSelect.disabled = false;
+                checkAnswerBtn.disabled = false;
+                newPointBtn.style.display = 'none'; // Hide "Next Point" button
+
+                startTimer(); // Start timer for new question
+            };
+            currentImage.onerror = () => {
+                console.error("Failed to load image: " + currentImage.src);
+                // Fallback: draw a red circle if image fails to load
+                drawGrid();
+                drawPoint(ORIGIN_X + (targetPoint.x * GRID_STEP), ORIGIN_Y - (targetPoint.y * GRID_STEP), '#d50000'); 
+                
+                // Reset inputs and messages as above
+                answerXInput.value = '';
+                answerYInput.value = '';
+                answerQuadrantSelect.value = '';
+                yourAnswerSpan.textContent = 'ยังไม่มี';
+                correctAnswerSpan.textContent = '';
+                messageDiv.textContent = 'เกิดข้อผิดพลาดในการโหลดรูปภาพ';
+                messageDiv.className = 'message wrong'; // Show error message
+                updateScoreDisplay();
+
+                answerXInput.disabled = false;
+                answerYInput.disabled = false;
+                answerQuadrantSelect.disabled = false;
+                checkAnswerBtn.disabled = false;
+                newPointBtn.style.display = 'none'; 
+                
+                startTimer(); 
+            };
+        }
+
+        function drawImageOnGraph(image, graphX, graphY) {
+            // Image size based on current GRID_STEP or fixed small size
+            const imgWidth = Math.min(image.width, GRID_STEP * 1.5); // Example: 1.5 times grid step
+            const imgHeight = Math.min(image.height, GRID_STEP * 1.5);
+
+            const centerX = ORIGIN_X + (graphX * GRID_STEP);
+            const centerY = ORIGIN_Y - (graphY * GRID_STEP);
+            ctx.drawImage(image, centerX - imgWidth / 2, centerY - imgHeight / 2, imgWidth, imgHeight);
+        }
+
+        function drawPoint(x, y, color) {
+            ctx.beginPath();
+            ctx.arc(x, y, 7, 0, Math.PI * 2); 
+            ctx.fillStyle = color;
+            ctx.fill();
+            ctx.closePath();
+        }
+
+        // Function to draw X Mark on Canvas
+        function drawXMark(xCoord, yCoord, color = 'red', size = 30) {
+            const canvasX = ORIGIN_X + (xCoord * GRID_STEP);
+            const canvasY = ORIGIN_Y - (yCoord * GRID_STEP);
+            const adjustedSize = size * (CANVAS_SIZE / ORIGINAL_CANVAS_SIZE); // Scale mark size
+
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 4; // Thicker line for visibility
+
+            ctx.beginPath();
+            // Draw first line of X
+            ctx.moveTo(canvasX - adjustedSize / 2, canvasY - adjustedSize / 2);
+            ctx.lineTo(canvasX + adjustedSize / 2, canvasY + adjustedSize / 2);
+            // Draw second line of X
+            ctx.moveTo(canvasX + adjustedSize / 2, canvasY - adjustedSize / 2);
+            ctx.lineTo(canvasX - adjustedSize / 2, canvasY + adjustedSize / 2);
+            ctx.stroke();
+
+            // Clear the X mark after a short delay
+            setTimeout(() => {
+                drawGrid(); // Redraw the grid to clear the X mark
+                drawImageOnGraph(currentImage, targetPoint.x, targetPoint.y); // Redraw the image
+            }, 1000); // Clear after 1 second
+        }
+
+        // Function to determine the quadrant
+        function getQuadrant(x, y) {
+            if (x > 0 && y > 0) {
+                return 'จตุภาคที่ 1';
+            } else if (x < 0 && y > 0) {
+                return 'จตุภาคที่ 2';
+            } else if (x < 0 && y < 0) {
+                return 'จตุภาคที่ 3';
+            } else if (x > 0 && y < 0) {
+                return 'จตุภาคที่ 4';
+            } else if (x === 0 && y !== 0) { // Point on Y-axis (not origin)
+                return 'บนแกน Y'; 
+            } else if (x !== 0 && y === 0) { // Point on X-axis (not origin)
+                return 'บนแกน X'; 
+            } else if (x === 0 && y === 0) {
+                return 'จุดกำเนิด (0,0)';
+            } else {
+                return 'ไม่ระบุ'; // Should not happen with current logic
+            }
+        }
+
+        function startTimer() {
+            clearInterval(timerInterval); 
+            timeLeft = TIME_PER_QUESTION;
+            timerDisplay.textContent = `เวลาที่เหลือ: ${timeLeft} วินาที`;
+            timerDisplay.style.color = '#d9534f'; // Default timer color
+
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                timerDisplay.textContent = `เวลาที่เหลือ: ${timeLeft} วินาที`;
+
+                if (timeLeft <= 5) {
+                    timerDisplay.style.color = 'red'; // Red for last 5 seconds
+                } else if (timeLeft <= 15) {
+                    timerDisplay.style.color = 'orange'; // Orange for last 15 seconds
+                } else {
+                    timerDisplay.style.color = '#d9534f'; // Default color
+                }
+
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    handleTimeout();
+                }
+            }, 1000);
+        }
+
+        function stopTimer() {
+            clearInterval(timerInterval);
+        }
+
+        function handleTimeout() {
+            messageDiv.textContent = `หมดเวลา! คำตอบที่ถูกต้องคือ (${targetPoint.x}, ${targetPoint.y}), ${getQuadrant(targetPoint.x, targetPoint.y)}`;
+            messageDiv.className = 'message wrong';
+            correctAnswerSpan.textContent = `(${targetPoint.x}, ${targetPoint.y}), ${getQuadrant(targetPoint.x, targetPoint.y)}`;
+            yourAnswerSpan.textContent = 'ไม่มีคำตอบ'; 
+
+            answerXInput.disabled = true;
+            answerYInput.disabled = true;
+            answerQuadrantSelect.disabled = true;
+            checkAnswerBtn.disabled = true;
+            newPointBtn.style.display = 'inline-block'; 
+            
+            drawXMark(targetPoint.x, targetPoint.y, 'red', 40); // Draw X mark when timeout
+
+            updateScoreDisplay();
+
+            if (questionCount >= TOTAL_QUESTIONS) {
+                newPointBtn.style.display = 'none';
+                messageDiv.textContent += '. จบเกมแล้ว! กด "ดูคะแนนรวม" เพื่อดูผล';
+                endGame();
+            }
+        }
+
+        checkAnswerBtn.addEventListener('click', () => {
+            if (gameIsOver) return; 
+            stopTimer(); 
+
+            const userAnswerX = parseInt(answerXInput.value);
+            const userAnswerY = parseInt(answerYInput.value);
+            const userAnswerQuadrant = answerQuadrantSelect.value;
+
+            // Input validation for user's answer
+            if (isNaN(userAnswerX) || isNaN(userAnswerY) || userAnswerQuadrant === '') {
+                messageDiv.textContent = 'กรุณากรอกคู่อันดับและเลือกจตุภาคให้ครบถ้วน!';
+                messageDiv.className = 'message wrong';
+                startTimer(); // Restart timer if input is incomplete
+                return;
+            }
+            
+            const correctQuadrant = getQuadrant(targetPoint.x, targetPoint.y);
+            const isCorrectX = userAnswerX === targetPoint.x;
+            const isCorrectY = userAnswerY === targetPoint.y;
+            const isCorrectQuadrant = userAnswerQuadrant === correctQuadrant;
+
+            yourAnswerSpan.textContent = `(${userAnswerX}, ${userAnswerY}), ${userAnswerQuadrant}`;
+            correctAnswerSpan.textContent = `(${targetPoint.x}, ${targetPoint.y}), ${correctQuadrant}`;
+
+            let scoreThisQuestion = 0;
+            let feedbackMessage = '';
+
+            if (isCorrectX && isCorrectY) {
+                feedbackMessage += 'คู่อันดับถูกต้อง! ';
+                scoreThisQuestion += 0.5;
+            } else {
+                feedbackMessage += 'คู่อันดับผิดพลาด. ';
+            }
+
+            if (isCorrectQuadrant) {
+                feedbackMessage += 'จตุภาคถูกต้อง!';
+                scoreThisQuestion += 0.5;
+            } else {
+                feedbackMessage += 'จตุภาคผิดพลาด.';
+            }
+
+            if (scoreThisQuestion === 1) {
+                currentScore++;
+                messageDiv.textContent = 'ยอดเยี่ยม! ' + feedbackMessage;
+                messageDiv.className = 'message correct';
+                confetti.render(); // Start confetti
+                setTimeout(() => confetti.clear(), 2000); // Clear after 2 seconds
+            } else {
+                messageDiv.textContent = 'ยังไม่ถูกต้อง. ' + feedbackMessage;
+                messageDiv.className = 'message wrong';
+                drawXMark(targetPoint.x, targetPoint.y, 'red', 40); // Draw X mark when wrong
+            }
+            
+            updateScoreDisplay();
+
+            // Disable inputs/button after answer
+            answerXInput.disabled = true;
+            answerYInput.disabled = true;
+            answerQuadrantSelect.disabled = true;
+            checkAnswerBtn.disabled = true;
+            newPointBtn.style.display = 'inline-block'; // Show "Next Point" button
+            
+            if (questionCount >= TOTAL_QUESTIONS) {
+                newPointBtn.style.display = 'none';
+                messageDiv.textContent += '. จบเกมแล้ว! กด "ดูคะแนนรวม" เพื่อดูผล';
+                endGame();
+            }
+        });
+
+        startGameBtn.addEventListener('click', () => {
+            const firstName = firstNameInput.value.trim();
+            const lastName = lastNameInput.value.trim();
+            const studentClass = studentClassInput.value.trim();
+            const studentId = parseInt(studentIdInput.value);
+
+            // Console logs for debugging start button issue
+            console.log("ชื่อ:", firstName);
+            console.log("สกุล:", lastName);
+            console.log("ชั้น:", studentClass);
+            console.log("เลขที่ (ก่อน parseInt):", studentIdInput.value);
+            console.log("เลขที่ (หลัง parseInt):", studentId);
+            console.log("isNaN(studentId):", isNaN(studentId));
+            console.log("studentId > 0:", studentId > 0);
+            console.log("ทั้งหมดเป็นจริง?:", firstName && lastName && studentClass && !isNaN(studentId) && studentId > 0);
+
+
+            // Basic validation for start game form
+            if (firstName && lastName && studentClass && !isNaN(studentId) && studentId > 0) {
+                console.log("เงื่อนไขทั้งหมดเป็นจริง: เกมจะเริ่ม!");
+                currentPlayer = {
+                    firstName: firstName,
+                    lastName: lastName,
+                    studentClass: studentClass,
+                    studentId: studentId
+                };
+                startNewGame();
+            } else {
+                console.log("เงื่อนไขไม่ครบ: แสดง alert");
+                alert('กรุณากรอกข้อมูลให้ครบถ้วนและถูกต้อง!'); // Alert user for incomplete/invalid input
+            }
+        });
+
+        newPointBtn.addEventListener('click', () => {
+            if (gameIsOver && questionCount >= TOTAL_QUESTIONS) {
+                // If game ended and all questions done, start a brand new game
+                startNewGame(); 
+            } else if (!gameIsOver) {
+                // If game is still ongoing, generate next point
+                generateRandomPointAndImage();
+            }
+        });
+
+        showScoresBtn.addEventListener('click', () => {
+            stopTimer(); 
+            displayScores();
+            gameContainer.classList.add('hidden');
+            scoreBoard.classList.remove('hidden');
+            confetti.clear(); // Clear confetti if still active
+        });
+
+        backToGameBtn.addEventListener('click', () => {
+            scoreBoard.classList.add('hidden');
+            gameContainer.classList.remove('hidden');
+            // If game is not over and there are still questions, re-enable inputs/timer
+            if (!gameIsOver && questionCount < TOTAL_QUESTIONS) {
+                answerXInput.disabled = false;
+                answerYInput.disabled = false;
+                answerQuadrantSelect.disabled = false;
+                checkAnswerBtn.disabled = false;
+                startTimer(); 
+            } else if (gameIsOver) {
+                // If game is over, prompt to start new game
+                messageDiv.textContent = 'กด "จุดถัดไป" เพื่อเริ่มเล่นอีกครั้ง หรือ "ดูคะแนนรวม"';
+                messageDiv.className = 'message info';
+                newPointBtn.style.display = 'inline-block'; 
+            }
+        });
+
+        function startNewGame() {
+            startScreen.classList.add('hidden');
+            gameContainer.classList.remove('hidden');
+            scoreBoard.classList.add('hidden');
+
+            currentScore = 0;
+            questionCount = 0; 
+            usedImageIndices = []; // Reset used images for new game
+            gameIsOver = false; 
+            playerInfoDisplay.textContent = `ผู้เล่น: ${currentPlayer.firstName} ${currentPlayer.lastName} ชั้น: ${currentPlayer.studentClass} เลขที่: ${currentPlayer.studentId}`;
+            
+            generateRandomPointAndImage(); // Start the first question
+        }
+
+        function endGame() {
+            stopTimer(); 
+            gameIsOver = true; 
+            alert(`จบเกมแล้ว! ${currentPlayer.firstName} ${currentPlayer.lastName} ได้คะแนน ${currentScore} จาก ${TOTAL_QUESTIONS} ข้อ`);
+            
+            // Save score to localStorage
+            const now = new Date();
+            const scoreEntry = {
+                firstName: currentPlayer.firstName,
+                lastName: currentPlayer.lastName,
+                studentClass: currentPlayer.studentClass,
+                studentId: currentPlayer.studentId,
+                score: currentScore,
+                totalQuestions: TOTAL_QUESTIONS,
+                timestamp: now.toLocaleString('th-TH', { 
+                    year: 'numeric', month: 'numeric', day: 'numeric', 
+                    hour: '2-digit', minute: '2-digit', second: '2-digit' 
+                })
+            };
+            gameScores.push(scoreEntry);
+            localStorage.setItem('graphGameScoresIdentifyV5_full', JSON.stringify(gameScores)); 
+
+            // Reset game state for next potential play
+            currentScore = 0;
+            usedImageIndices = []; 
+            newPointBtn.style.display = 'inline-block'; // Show "Next Point" button
+            drawGrid(); // Clear canvas
+            yourAnswerSpan.textContent = 'ยังไม่มี';
+            correctAnswerSpan.textContent = '';
+            messageDiv.textContent = 'กด "จุดถัดไป" เพื่อเริ่มเล่นอีกครั้ง หรือ "ดูคะแนนรวม"';
+            messageDiv.className = 'message info';
+            updateScoreDisplay(); 
+            answerXInput.disabled = true; 
+            answerYInput.disabled = true;
+            answerQuadrantSelect.disabled = true;
+            checkAnswerBtn.disabled = true; 
+            timerDisplay.textContent = `เวลาที่เหลือ: ${TIME_PER_QUESTION} วินาที`; 
+            timerDisplay.style.color = '#d9534f'; 
+            confetti.clear(); // Clear confetti if still active
+        }
+
+        function updateScoreDisplay() {
+            scoreDisplay.textContent = `คะแนน: ${currentScore}/${questionCount}`;
+            if (gameIsOver && questionCount >= TOTAL_QUESTIONS) {
+                 scoreDisplay.textContent = `คะแนน: ${currentScore}/${TOTAL_QUESTIONS}`; // Show final score
+            }
+        }
+
+        function displayScores() {
+            scoresTableBody.innerHTML = ''; 
+            individualScoresSummaryDiv.innerHTML = ''; 
+
+            const playerSummary = {};
+            gameScores.forEach(scoreEntry => {
+                const playerKey = `${scoreEntry.firstName}_${scoreEntry.lastName}_${scoreEntry.studentClass}_${scoreEntry.studentId}`;
+                if (!playerSummary[playerKey]) {
+                    playerSummary[playerKey] = {
+                        firstName: scoreEntry.firstName,
+                        lastName: scoreEntry.lastName,
+                        studentClass: scoreEntry.studentClass,
+                        studentId: scoreEntry.studentId,
+                        totalScore: 0,
+                        totalQuestionsPlayed: 0,
+                        gamesPlayed: 0
+                    };
+                }
+                playerSummary[playerKey].totalScore += scoreEntry.score;
+                playerSummary[playerKey].totalQuestionsPlayed += scoreEntry.totalQuestions;
+                playerSummary[playerKey].gamesPlayed++;
+            });
+
+            // Sort players by average score
+            const sortedPlayerSummary = Object.values(playerSummary).sort((a, b) => {
+                const avgA = a.totalQuestionsPlayed > 0 ? a.totalScore / a.totalQuestionsPlayed : 0;
+                const avgB = b.totalQuestionsPlayed > 0 ? b.totalScore / b.totalQuestionsPlayed : 0;
+                return avgB - avgA;
+            });
+
+            if (sortedPlayerSummary.length === 0) {
+                individualScoresSummaryDiv.textContent = 'ยังไม่มีข้อมูลคะแนนรวม';
+            } else {
+                sortedPlayerSummary.forEach(player => {
+                    const avgScore = player.totalQuestionsPlayed > 0 ? (player.totalScore / player.totalQuestionsPlayed * 100).toFixed(2) : 0;
+                    const summaryP = document.createElement('p');
+                    summaryP.innerHTML = `<strong>${player.firstName} ${player.lastName} (${player.studentClass}/${player.studentId}):</strong> เล่นไป ${player.gamesPlayed} ครั้ง, คะแนนรวม ${player.totalScore}/${player.totalQuestionsPlayed} (เฉลี่ย ${avgScore}%)`;
+                    individualScoresSummaryDiv.appendChild(summaryP);
+                });
+            }
+
+            // Sort individual game entries by score and timestamp
+            gameScores.sort((a, b) => b.score - a.score || new Date(b.timestamp) - new Date(a.timestamp)); 
+
+            if (gameScores.length === 0) {
+                const row = scoresTableBody.insertCell();
+                const cell = row.insertCell();
+                cell.colSpan = 7;
+                cell.textContent = 'ยังไม่มีประวัติการเล่น';
+            } else {
+                gameScores.forEach((score, index) => {
+                    const row = scoresTableBody.insertRow();
+                    row.insertCell().textContent = index + 1;
+                    row.insertCell().textContent = score.firstName;
+                    row.insertCell().textContent = score.lastName;
+                    row.insertCell().textContent = score.studentClass;
+                    row.insertCell().textContent = score.studentId;
+                    row.insertCell().textContent = `${score.score}/${score.totalQuestions}`;
+                    row.insertCell().textContent = score.timestamp;
+                });
+            }
+        }
+
+        // --- Initial setup and event listeners for responsiveness ---
+        // Call resizeCanvas initially and on window resize
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        updateScoreDisplay(); 
+        gameContainer.classList.add('hidden'); // Hide game when not started
+        scoreBoard.classList.add('hidden'); // Hide scoreboard initially
+        startScreen.classList.remove('hidden'); // Show start screen
+    </script>
+</body>
+</html>
